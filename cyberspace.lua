@@ -65,6 +65,7 @@ function login()
     else
       print("cant open .token file lol")
     end
+    prepare()
   else
     handleError(tostring(error), "loginFunction")
   end
@@ -105,12 +106,12 @@ function viewProfile(username)
 
     local rdata = textutils.unserializeJSON(rtext)
 
-    print("Name: " .. rdata.data.username)
-    print("Guild: " .. rdata.data.guildSlug)
-    print("Following: " .. rdata.data.followingCount)
-    print("Followers: " .. rdata.data.followersCount)
-    print("Website: " .. rdata.data.websiteUrl)
-    print("Website Name: " .. rdata.data.websiteName)
+    print("Name: " .. tostring(rdata.data.username))
+    print("Guild: " .. tostring(rdata.data.guildSlug))
+    print("Following: " .. tostring(rdata.data.followingCount))
+    print("Followers: " .. tostring(rdata.data.followersCount))
+    print("Website: " .. tostring(rdata.data.websiteUrl))
+    print("Website Name: " .. tostring(rdata.data.websiteName))
     print("-------------")
     print("Banned = " .. tostring(rdata.data.isBanned))
     print("Immortal = " .. tostring(rdata.data.isImmortal))
@@ -122,6 +123,42 @@ function viewProfile(username)
 end
 
 -- end of viewProfile
+
+-- start of writeFeed
+
+function writeFeed()
+  print("What do you want to tell Cyberspace?")
+  local writeContent = read()
+
+  local url = baseUrl .. "/v1/posts"
+  local headers = {
+    ["Content-Type"] = "application/json",
+    ["Authorization"] = "Bearer " .. idToken
+  }
+
+  local writeFeedBody = {
+    content = tostring(writeContent)
+  }
+
+  local rbody = textutils.serializeJSON(writeFeedBody)
+
+  -- Sending http post
+  local response, error = http.post(url, rbody, headers)
+
+  if response then
+    local rtext = response.readAll()
+    response.close()
+
+    print(rtext)
+
+    local rdata = textutils.unserializeJSON(rtext)
+    print("Post created at ID: " .. rdata.data.postId)
+  else
+    handleError(error, "writeFeedFunction")
+  end
+end
+
+-- end of writeFeed
 
 -- start of refresh Function
 
@@ -185,10 +222,13 @@ function handleError(error, section)
     else
       refresh()
     end
-  elseif error == "Forbidden" then print("Forbidden")
-  elseif error == "Banned" then print("You are banned!")
-  elseif error == "Not Found" then print("lol this doesnt exist fam")
-  else 
+  elseif error == "Forbidden" then
+    print("Forbidden")
+  elseif error == "Banned" then
+    print("You are banned!")
+  elseif error == "Not Found" then
+    print("lol this doesnt exist fam")
+  else
     print("No Error handle for this error specified")
     print(error)
     print("Section: " .. section)
@@ -200,7 +240,38 @@ end
 -- start of menu Function
 
 function menu()
+  if not fs.exists(".token") then
+    login()
+  else
+    prepare()
+  end
 
+  while true do
+    print("1) Print own profile")
+    print("2) Lookup Profile")
+    print("3) Write to Feed")
+    print("q) Quit")
+
+    local selection = read()
+
+    shell.run("clear")
+
+    if not selection then
+      print("You selected nothing. Try again.")
+    elseif selection == "1" then
+      viewProfile("me")
+    elseif selection == "2" then
+      print("Who?")
+      local selectUser = read()
+      viewProfile(selectUser)
+    elseif selection == "3" then
+      writeFeed()
+    elseif selection == "q" then
+      break
+    else
+      print("Out of Scope or Invalid input")
+    end
+  end
 end
 
 -- end of menu Function
@@ -209,8 +280,5 @@ if args[1] == "zerofucksgiven" then
   debugMode = true
 end
 
-if not fs.exists(".token") then
-  login()
-else
-  prepare()
-end
+
+menu()
