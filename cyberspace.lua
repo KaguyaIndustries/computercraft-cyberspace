@@ -1,3 +1,11 @@
+-- Cyberspace.online program
+-- by kaguya
+-- site: https://catb.it
+
+-- TODO Error Handling
+-- TODO write .token function
+
+
 local args = {...}
 local baseUrl = "https://api.cyberspace.online"
 
@@ -58,7 +66,7 @@ else
 end
 
 else
-  print("Error: " .. tostring(error))
+  print("Login Error: " .. tostring(error))
 end
 end
 -- end of login function
@@ -113,9 +121,42 @@ function viewProfile(username)
   end  
 end
 
-
 -- end of viewProfile
 
+-- start of refresh Function
+
+function refresh()
+    local url = baseUrl .. "/v1/auth/refresh"
+    
+    local header = {
+    ["Content-Type"] = "application/json"
+    }
+
+    local rtokenbody = {
+      refreshToken = refreshToken
+    }
+
+    local rbody = textutils.serializeJSON(rtokenbody)
+
+    local response, error = http.post(url, rbody, headers)
+
+    if response then
+      local rtext = response.readAll()
+      response.close()
+    
+      local rdata = textutils.unserializeJSON(rtext)
+
+      idToken = rdata.data.idToken
+      rtdbToken = rdata.data.rtdbToken
+
+    else
+      print("refresh error: " .. error)
+    end
+
+
+end
+
+-- end of refresh Function
 
 if args[1] == "zerofucksgiven" then
   debugMode = true
@@ -125,5 +166,6 @@ if not fs.exists(".token") then
   login()
 else
   prepare()
+  refresh()
   viewProfile("me")
 end
